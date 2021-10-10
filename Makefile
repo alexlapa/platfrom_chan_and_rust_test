@@ -1,3 +1,3 @@
 run:
 	cd rust && cargo build \
-	&& cd .. && dart run
+	&& cp target/debug/libmylib.so ../assets/libmylib.so
