@@ -3,18 +3,32 @@
 #include <flutter_linux/flutter_linux.h>
 #include <gtk/gtk.h>
 #include <sys/utsname.h>
-
+#include <dlfcn.h>
+#include <stdexcept>
 #include <cstring>
+#include <mylib.hpp>
 
 #define PLATFROM_CHAN_AND_RUST_TEST_PLUGIN(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), platfrom_chan_and_rust_test_plugin_get_type(), \
                               PlatfromChanAndRustTestPlugin))
+
+void* dl_handle = nullptr;
 
 struct _PlatfromChanAndRustTestPlugin {
   GObject parent_instance;
 };
 
 G_DEFINE_TYPE(PlatfromChanAndRustTestPlugin, platfrom_chan_and_rust_test_plugin, g_object_get_type())
+
+static void platfrom_chan_and_rust_test_plugin_dispose(GObject* object) {
+  G_OBJECT_CLASS(platfrom_chan_and_rust_test_plugin_parent_class)->dispose(object);
+}
+
+static void platfrom_chan_and_rust_test_plugin_class_init(PlatfromChanAndRustTestPluginClass* klass) {
+  G_OBJECT_CLASS(klass)->dispose = platfrom_chan_and_rust_test_plugin_dispose;
+}
+
+static void platfrom_chan_and_rust_test_plugin_init(PlatfromChanAndRustTestPlugin* self) { }
 
 // Called when a method call is received from Flutter.
 static void platfrom_chan_and_rust_test_plugin_handle_method_call(
@@ -25,10 +39,12 @@ static void platfrom_chan_and_rust_test_plugin_handle_method_call(
   const gchar* method = fl_method_call_get_name(method_call);
 
   if (strcmp(method, "getPlatformVersion") == 0) {
-    struct utsname uname_data = {};
-    uname(&uname_data);
-    g_autofree gchar *version = g_strdup_printf("Linux %s", uname_data.version);
-    g_autoptr(FlValue) result = fl_value_new_string(version);
+
+    auto uname = mylib::get_uname();
+    g_autofree gchar *data = g_strdup(uname);
+    mylib::string_free(uname);
+
+    g_autoptr(FlValue) result = fl_value_new_string(data);
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
@@ -36,16 +52,6 @@ static void platfrom_chan_and_rust_test_plugin_handle_method_call(
 
   fl_method_call_respond(method_call, response, nullptr);
 }
-
-static void platfrom_chan_and_rust_test_plugin_dispose(GObject* object) {
-  G_OBJECT_CLASS(platfrom_chan_and_rust_test_plugin_parent_class)->dispose(object);
-}
-
-static void platfrom_chan_and_rust_test_plugin_class_init(PlatfromChanAndRustTestPluginClass* klass) {
-  G_OBJECT_CLASS(klass)->dispose = platfrom_chan_and_rust_test_plugin_dispose;
-}
-
-static void platfrom_chan_and_rust_test_plugin_init(PlatfromChanAndRustTestPlugin* self) {}
 
 static void method_call_cb(FlMethodChannel* channel, FlMethodCall* method_call,
                            gpointer user_data) {

@@ -23,6 +23,3 @@ flutter:
         pluginClass: PlatfromChanAndRustTestPlugin
       windows:
         pluginClass: PlatfromChanAndRustTestPlugin
-
-  assets:
-    - assets/libmylib.so
